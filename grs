@@ -288,9 +288,11 @@ if args.png:
       tmpString += '<img src = "%s_%s.png" />\n' % (blk,mod)
       
   htmlString = '''<html>\n
-  
-  
-  
+                  <body>\n
+                  <p>Listing your generated pngs by grs.</p>\n
+                  %s
+                  </body>\n
+                  </html>\n
   ''' % (tmpString)
   with open("grs_gng.html", "w") as f:
     f.write(htmlString)
