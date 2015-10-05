@@ -1,0 +1,319 @@
+#! /usr/bin/env python
+import re
+import os, os.path
+from collections import *
+import argparse
+
+cur_path = os.getcwd()
+match_ok = re.match("(/tmpdata/SD5886V100[_|2]*)",cur_path)
+if(match_ok):
+  rpt_path = match_ok.group(1) + "/regress_report"
+else:
+  print "You are not on /tmpdata/SD5886... dir, please rerun on it"
+#rpt_path = "/tmpdata/SD5886V100_2/regress_report"
+
+date_dict = {}
+blk2mod = OrderedDict()
+
+'''
+Add help information here.
+'''
+
+help_parser = argparse.ArgumentParser(
+  formatter_class = argparse.RawDescriptionHelpFormatter,
+  description = "Grs",
+  epilog = 'More information and error report, please contact Chris lee'
+)
+
+help_paser.add_argument(
+  '-s','--start',
+  metavar = 'start',
+  type = str,
+  help = 'Set start date, eg. -s 20120101.'
+)
+
+help_paser.add_argument(
+  '-e','--end',
+  metavar = 'end',
+  type = str,
+  help = 'Set end date, eg. -s 20130101.'
+)
+
+help_paser.add_argument(
+  '-b','--block',
+  metavar = 'block',
+  nargs = "+",
+  type = str,
+  help = 'Set which block need collect, default is all!'
+)
+
+help_paser.add_argument(
+  '-p','--png',
+  action = 'store_true',
+  default = False,
+  help = 'Auto generate png.'
+)
+
+args = help_parser.parse_args()
+
+def updateDateDictRpt(blk,pre_path,rpt):
+  m = re.match("(\w+)_(\d+)_(\d+).rpt",rpt)
+  if m:
+    d = date_dict.setdefault(m.group(2),{}) #date
+    b = d.setdefault(blk,{})  #block name
+    mo = b.setdefault(m.group(1),[])
+
+    mo.append(
+      [m.group(3),
+      getCovInfo(os.path.sep.join([pre_path, rpt]))]
+    )
+    
+    b[m.group(1)] = sorted(mo, cmpTwoCov)
+    
+    if m.group(1) no in blk2mod[blk]:
+      blk2mod[blk].append(m.group(1))
+      
+
+def updateDateDict(blk,ver_list,pre_path):
+  for e in ver_list:
+    ver_path = os.path.sep.join([pre_path, e])
+    if os.path.isdir(ver_path):
+      for rpt in os.listdir(ver_path):
+        updateDateDictRpt(blk,ver_path,rpt)
+    else:
+      updateDateDictRpt(blk,pre_path,e)
+      
+
+def cmpTwoCov(a,b):
+  sa = sum([float(x[:-1]) if x != "--" else 0 for x in a[1]:[:-1]])    #Don't compare TC nums
+  sb = sum([float(x[:-1]) if x != "--" else 0 for x in b[1]:[:-1]])
+  if sa > sb:
+    return 1
+  return -1
+  
+  
+def getCovInfo(path):
+  with open(path) as f:
+    line_number = 0
+    st_num = 0
+    for a_line in f:
+      line_number += 1
+      if(re.match("The Digest of the Report",a_line)):
+        st_num = line_number
+      if(re.match("\s*TOTAL",a_line)):
+        break
+    tc_num = str(line_number - st_num -6)
+    f.seek(0)
+    m = re.search(
+      "TOTAL\s+\|\s*(\d+)\s*\|[0-9]+\|[0-9]+\|\s+([0-9.]+).+Code Coverage:\s+([0-9.%]*).+Functional Coverage:\s+([0-9.%]*).+Plan Coverage:\s+([0-9.%]*)",
+      f.read(),
+      flags = re.M|re.S
+    )
+    if m:
+      cov0 = m.group(3)
+      cov1 = m.group(4)
+      cov2 = m.group(5)
+      if cov0 == "%":
+        cov0 = "0.0%"
+      if cov1 == "%":
+        cov1 = "0.0%"        
+      if cov2 == "%":
+        cov2 = "0.0%"     
+      return cov0,cov1,cov2,m.group(2),tc_num
+    else:
+      return "--","--","--","--","--"
+        
+        
+        
+        
+#Start parser all date report info.
+for e in os.listdir(rpt_path):
+  pre_path = os.path.sep.join([rpt_path,e])
+  if os.path.isdir(pre_path):
+    if args.block and e not in args.block:
+      continue
+    blk2mod[e] = []
+    updateDateDict(e,os.listdir(pre_path),pre_path)
+    
+    
+#Do some date filter
+_dates = date_dict.keys()
+_dates.sort()
+dates = []
+for d in _dates:
+  if args.start and d < args.start:
+    continue
+  if args.end and d > args.end:
+    continue
+  dates.append(d)
+  
+  
+import sys,time
+prefix_path = os.path.realpath(os.path.dirname(sys.argv[0]))
+
+#Generate the summary report..
+def gen_report():
+  import jinja2
+  from jinja2 import Environment
+  from jinja2.loaders import FileSystemLoader
+  env = Environment(loader=FileSystemLoader(prefix_path + '/tpl'))
+  tmpl = env.get_template('grs.rpt')
+  
+  grpt_name = "summary_report_%s.rpt" % time.strftime("%Y%m%d")
+  with open(grpt_name, "w") as f:
+    f.write(
+      tmpl.render(
+        time = time.strftime("%a, %d %b %Y %H:%M:%S"),
+        dates = dates,
+        date_dict = date_dict,
+        blks = blk2mod
+      )
+    )
+  
+  print grpt_name + " is generated!"
+  
+  
+def gen_gui(fig,cc,dates,mode,blk):
+  max_tc_nums = 0
+  min_tc_nums = 1000
+  max_rate = 0
+  min_rate = 100
+  colors = ['r','g','b','y','k']
+  shapes = ['o','s','^','d','*']
+  lstyle = ['-','-','-','-','-.']
+  labels = ['Code Cov','Func Cov','Plan Cov','Pass Rate','TC Nums']
+  cov_l_data = [[[]],[[]],[[]],[[]],[[]]]
+  
+  for x,d in enumerate(dates):
+    if blk in date_dict[d] and mode in date_dict[d][blk]:
+      cov = date_dict[d][blk][mode][-1][1]
+      for i in range(4):
+        tmp = float(cov[i][:-1]) if "-" not in cov[i] else 0
+        if tmp < min_rate:
+          min_rate = tmp
+        if tmp > max_rate:
+          max_rate = tmp
+        cov_l_data[i][-1].append([x,tmp])
+      tmp = int(cov[4]) if "-" not in cov[4] else 0
+      cov_l_data[4][-1].append([x,tmp])
+      if tmp > max_tc_nums:
+        max_tc_nums = tmp
+      if tmp < min_tc_nums:
+        min_tc_nums = tmp
+        
+    else:
+      for i in range(5):
+        if cov_l_datap[i][-1]:
+          cov_l_data[i].append([])
+          
+  for i in range(5):
+    if not cov_l_data[i][-1]:
+      cov_l_data[i].pop(-1)
+      line2d = []
+      for l in cov_l_data[i]:
+        x = []
+        y = []
+        for e in l:
+          x.append(e[0])
+          y.append(e[1])
+        line2d.append(Line2D(x,y,color = colors[i], linestyle = lstyle[i], marker = shapes[i]))
+    cov_l_datap[i] = line2d
+    
+  
+  def ddate_format(x,pos=None):
+    ind = np.clip(int(x+0.5),0,len(dates)-1)
+    if ind >= len(dates):
+      return ""
+    return dates[ind][4:]
+    
+  x = range(len(dates))
+  cc.xaxis.set_major_formatter(ticker.FuncFormatter(date_format))
+  cc.set_ylim([0,100])
+  cc.set_xlim([0,len(dates) - 1])
+  cc.grid(True)
+  
+  lines = []
+  tl = None
+  for i in range(4):
+    for l in cov_l_data[i]:
+      tl = cc.add_line(l)
+    if tl:
+      lines.append(tl)
+  
+  cc.set_title(blk + "'s Cov(%s)" % mode)
+  cc.set_xticks(x)
+  cc.set_xlabel("Date")
+  cc.set_ylabel("Coverage Date(%)")
+  
+  cc2 = cc.twinx()
+  cc2.set_ylim(min_tc_nums - 1, max_tc_nums + 1)
+  for l in cov_l_data[4]:
+    tl = cc2.add_line(l)
+  if tl:
+    lines.append(tl)
+  cc2.set_ylabel("TC Nums")
+  
+  font = FontProperties()
+  font.set_size(9)
+  l1 = fig.legend(lines[:4],labels[:4],"lower left",prop = font)
+  l2 = fig.legend(lines[4:5],labels[4:5],"lower right",prop = font)
+  plt.gca().add_artist(l1)
+  plt.gca().add_artist(l2)  
+  
+if args.png:
+  import subprocess as sp
+  import os.path
+  if not os.path.exists(prefix_path + "/matplotlib"):
+    print "Initial ..., please wait!"
+    sp.check_call(["tar","-xjf",prefix_path + "/matplotlib.tar.bz2","-C",prefix_path])
+    sys.path.insert(0,prefix_path + "/matplotlib")
+    print "Please rerun!"
+    quit(1)
+  
+  import matplotlib.pyplot as plt
+  import matplotlib.ticker as ticker
+  from matplotlib.collections import LineCollection
+  from matplotlib.lines import Line2D
+  from matplotlib.font_manger import FontProperties
+  import numpy as np
+  tmpString = ''
+  for blk in blk2mod:
+    for mod in blk2mod[blk]:
+      fig = plt.figure()
+      cc = fig.add_subplot(1,1,1)
+      gen_gui(fig,cc,dates,mod,blk)
+      fig.autofmt_xdate()
+      plt.savefig("%s_%s.png" % (blk,mod), dpi = 100)
+      plt.clf()
+      tmpString += '<img src = "%s_%s.png" />\n' % (blk,mod)
+      
+  htmlString = '''<html>\n
+  
+  
+  
+  ''' % (tmpString)
+  with open("grs_gng.html", "w") as f:
+    f.write(htmlString)
+else:
+  gen_report()
+  
+  
+  
+  
+    
+  
+  
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
