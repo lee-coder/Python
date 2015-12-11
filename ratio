@@ -1,0 +1,36 @@
+/// calculate whether the account has satisfy the YearProfit condition to sell out or not.
+import math
+
+global YearProfit       ### integer
+
+def SetProfit(val):
+    global YearProfit
+    YearProfit = val
+
+def CalDailyPro():
+    global YearProfit
+    return math.pow(YearProfit,1/360)
+
+def CalDaysPro(day_num):
+    DailyPro = CalDailyPro()
+    return math.pow(DailyPro,day_num)
+
+def NeedDaysIncome(day_num,init_money,redemption_rate = 0.02):
+    DaysPro = CalDaysPro(day_num)
+    DaysIncome = init_money * DaysPro
+    return DaysIncome/(1-redemption_rate)
+
+def JudgeSellOrNot(day_num,init_money,now_money,redemption_rate = 0.02):
+    NeedIncome = NeedDaysIncome(day_num,init_money,redemption_rate)
+    if(now_money > NeedIncome):
+        return "Sell"
+    else:
+        return "NotSell,wait..."
+    
+
+SetProfit(3)
+day_num = 7
+init_money = 200
+now_money = 209
+print(NeedDaysIncome(day_num,init_money))
+print(JudgeSellOrNot(day_num,init_money,now_money))
