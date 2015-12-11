@@ -1,0 +1,19 @@
+def GetCurWorldTimeSec():
+    import time
+    return time.time()
+
+def GetCurTimeStr(time_zone = 0):   ### Default is World Standard Time
+    import time
+    time_sec = time.time() + time_zone*3600
+    time_str = time.strftime("%Y%m%d %X",time.gmtime(time_sec))
+    time_str = "".join(time_str.split(":"))
+    return time_str
+
+def GetCurrentChinaTime():
+    return GetCurTimeStr(8)     ### Eastern eight zones
+    
+def GetCurrentWorldTime():
+    return GetCurTimeStr()
+
+print(GetCurrentChinaTime())
+print(GetCurrentWorldTime())
