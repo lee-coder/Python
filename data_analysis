@@ -30,8 +30,7 @@ def GetAverageValue(single_data_array):
 
 def GetMedianValue(single_data_array):
     CheckListData(single_data_array)
-    data_array_tmp = []
-    data_array_tmp = single_data_array
+    data_array_tmp = single_data_array[:]
     data_array_tmp.sort()
     if(len(data_array_tmp)%2):
         return data_array_tmp[int((len(data_array_tmp)-1)/2)]
