@@ -1,0 +1,63 @@
+def CalPercent(initial_value,result_value):
+    import math
+    raw_result_value = (result_value - initial_value)/initial_value * 100
+    return math.floor(100*round(raw_result_value,4))/100
+
+def CheckListData(single_data_array):
+    for i in range(len(single_data_array)):
+        try: 
+           float(single_data_array[i]);
+        except(ValueError): 
+           print("pass-in paramter list contains non-digit element\n")
+
+def GetPercentageFluctuation(single_data_array,day_gap = 1):
+    CheckListData(single_data_array)
+    result_array = []
+    for i in range(len(single_data_array)):
+        if i < day_gap:
+            result_array.append("----")
+        else:
+            result_array.append\
+            (CalPercent(single_data_array[i-day_gap],single_data_array[i]))
+    return result_array
+
+def GetAverageValue(single_data_array):
+    CheckListData(single_data_array)
+    data_sum = 0
+    for i in range(len(single_data_array)):
+        data_sum += single_data_array[i]
+    return data_sum/len(single_data_array)
+
+def GetMedianValue(single_data_array):
+    CheckListData(single_data_array)
+    data_array_tmp = []
+    data_array_tmp = single_data_array
+    data_array_tmp.sort()
+    if(len(data_array_tmp)%2):
+        return data_array_tmp[int((len(data_array_tmp)-1)/2)]
+    else:
+        return (data_array_tmp[int(len(data_array_tmp)/2)-1]\
+               +data_array_tmp[int(len(data_array_tmp)/2)])/2
+
+
+
+### test code
+import random
+data = []
+for i in range(10):
+    data.append(round(random.uniform(1,10),2))        
+print(data)
+print(GetPercentageFluctuation(data,2))
+print(data)
+print(GetAverageValue(data))
+
+print(GetMedianValue(data))
+
+print(data)
+
+#CheckListData(data)
+#print(data)
+#data.append("abc")
+#print(data)
+#CheckListData(data)
+#print(data)
