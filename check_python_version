@@ -1,0 +1,24 @@
+/// Use sys.version_info to check running python version
+def check_python():
+    import sys
+    info = sys.version_info
+    ver_major = info.major
+    ver_micro = info.micro
+    ver_minor = info.minor
+    ver_release = info.releaselevel
+    ver_serial = info.serial
+    if(ver_major not in [2,3]):
+        print('Not python2 or python3,Please have a check!')
+        sys.exit(1)
+    if ver_major == 2:
+        if ver_micro < 6:
+            print('Python 2.6+ required,Please update your python version')
+            sys.exit(1)
+    if ver_major == 3:
+        if ver_micro < 3:
+            print('Python 3.3+ required,Please update your python version')
+            sys.exit(1)
+    print('Running python version info: \n'+info.__repr__())
+
+if __name__ == '__main__':
+    check_python()
