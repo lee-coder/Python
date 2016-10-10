@@ -1,1 +1,30 @@
-def GetCurWorldTimeSec():    import time    return time.time()def GetCurTimeSec(time_zone = 0):    import time    time_sec = GetCurWorldTimeSec() + time_zone*3600    return time_secdef GetCurTimeStr(time_zone = 0):   ### Default is World Standard Time    import time    time_str = time.strftime("%Y%m%d %X",time.gmtime(GetCurTimeSec(time_zone)))    time_str = "".join(time_str.split(":"))    return time_strdef GetCurChinaTime():    return GetCurTimeStr(8)     ### Eastern eight zonesdef GetCurChinaDay():    return GetCurChinaTime().split(" ")[0]    def GetCurWorldTime():    return GetCurTimeStr()def GetCurWorldDay():    return GetCurWorldTime().split(" ")[0]if __name__ == "__main__":       print(GetCurChinaTime())    print(GetCurWorldTime())    print(GetCurChinaDay())    print(GetCurWorldDay())
+def GetCurWorldTimeSec():
+    import time
+    return time.time()
+
+def GetCurTimeSec(time_zone = 0):
+    import time
+    time_sec = GetCurWorldTimeSec() + time_zone*3600
+    return time_sec
+
+def GetCurTimeStr(time_zone = 0):   ### Default is World Standard Time
+    import time
+    time_str = time.strftime("%Y%m%d %X",time.gmtime(GetCurTimeSec(time_zone)))
+    time_str = "".join(time_str.split(":"))
+    return time_str
+
+def GetCurChinaTime():
+    return GetCurTimeStr(8)     ### Eastern eight zones
+def GetCurChinaDay():
+    return GetCurChinaTime().split(" ")[0]
+    
+def GetCurWorldTime():
+    return GetCurTimeStr()
+def GetCurWorldDay():
+    return GetCurWorldTime().split(" ")[0]
+
+if __name__ == "__main__":   
+    print(GetCurChinaTime())
+    print(GetCurWorldTime())
+    print(GetCurChinaDay())
+    print(GetCurWorldDay())
