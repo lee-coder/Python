@@ -1,0 +1,92 @@
+"""
+I need the data stored in txt file's format is
+
+date            value
+20161010        1.123
+20161011        1.211
+
+I get the fund data from internet web resources, and write to txt file daily.
+And I will check the data order to place the latest data in front, and long time ago data in last.
+If the already exist data is ordered, I will only add new data to the file,
+if not, I will add new data and reorder all the data and write into a new file.
+
+"""
+
+def TransDataToDict(file_handle):
+    from collections import OrderedDict
+    raw_data = OrderedDict()
+    line_num = 0
+    for line in file_handle:
+        try:
+            [key,value] = line.split()
+        except ValueError:
+            return ("Please check line %0d, the data format may be not correct!" % (line_num))
+        raw_data[int(key)] = ("%.4f" % float(value))
+        line_num = line_num + 1
+    return raw_data
+
+def GetDataFromTxt(txt_str=""):
+    raw_data = {}
+    try:
+        datafile = open(txt_str, "r")
+    except FileNotFoundError:
+        return ("Oops! the file %s does not exist, Pleade have a check!" % (txt_str))
+    return TransDataToDict(datafile)
+
+def GetIndexToList(ord_dict,index="key"):
+    key_list = []
+    for key in ord_dict:
+        if index == "key":
+            key_list.append(key)
+        else:
+            key_list.append(ord_dict[key])
+    return key_list
+
+def CompareTwoElements(x,y,order=0):    # 0 means left smaller than right, 1 means opposite.
+        return x>=y if order else x<=y     
+
+def JudgeOrderForArray(array,order=0):  # order 0 means small to large, 1 means large to small
+    i = 0
+    last_index = len(array)-1
+    while(i<last_index and CompareTwoElements(array[i],array[i+1],order)):
+        i = i+1
+    return i==last_index
+
+def OrderedDictReorder(ord_dict,index="key",rev=False):
+    from collections import OrderedDict
+    return OrderedDict(sorted(ord_dict.items(), key=lambda t:t[0] if index=="key" else t[1],reverse=rev))
+
+ 
+if __name__ == "__main__":   
+    raw_data = GetDataFromTxt("xxx.txt")
+    print(raw_data)    
+    key_list = GetIndexToList(raw_data,"key")
+    val_list = GetIndexToList(raw_data,"val")
+    print(key_list)
+    print(val_list)
+    key_order_or_not_s = JudgeOrderForArray(key_list)
+    val_order_or_not_s = JudgeOrderForArray(val_list)
+    key_order_or_not_l = JudgeOrderForArray(key_list,1)
+    val_order_or_not_l = JudgeOrderForArray(val_list,1)    
+    print(key_order_or_not_s)
+    print(val_order_or_not_s)
+    print(key_order_or_not_l)
+    print(val_order_or_not_l)
+    key_ordered_data_s = OrderedDictReorder(raw_data,"key")   # raw_data not changed     
+    key_ordered_data_l = OrderedDictReorder(raw_data,"key",True)
+    val_ordered_data_s = OrderedDictReorder(raw_data,"val")
+    val_ordered_data_l = OrderedDictReorder(raw_data,"val",True)    
+    print(key_ordered_data_s)
+    print(key_ordered_data_l)   
+    print(val_ordered_data_s)
+    print(val_ordered_data_l)
+
+#order_data = OrderedDict()
+#order_data = OrderedDict(raw_data)
+
+#print(GetDataFromTxt("xxx.txt"))
+#print(GetIndexToList(GetDataFromTxt("xxx.txt"),))
+#print(GetIndexToList(GetDataFromTxt("xxx.txt"),"val"))
+
+#print(CompareTwoElements(1,1,0))
+#print(JudgeOrderForArray([4,3,3,2],1))
