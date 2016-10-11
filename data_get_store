@@ -10,10 +10,17 @@ And I will check the data order to place the latest data in front, and long time
 If the already exist data is ordered, I will only add new data to the file,
 if not, I will add new data and reorder all the data and write into a new file.
 
+test xxx.txt in same dir
+20161010 	1.21444
+20161002 	1.41444
+20161005 	1.31444
+20161003 	1.81444
+20161007 	1.51444
 """
 
 def TransDataToDict(file_handle):
     from collections import OrderedDict
+    import decimal
     raw_data = OrderedDict()
     line_num = 0
     for line in file_handle:
@@ -21,8 +28,10 @@ def TransDataToDict(file_handle):
             [key,value] = line.split()
         except ValueError:
             return ("Please check line %0d, the data format may be not correct!" % (line_num))
-        raw_data[int(key)] = ("%.4f" % float(value))
+        # raw_data[int(key)] = ("%.4f" % float(value)) # string not float type
+        raw_data[int(key)] = decimal.Decimal("%.4f" % float(value))
         line_num = line_num + 1
+    file_handle.close()
     return raw_data
 
 def GetDataFromTxt(txt_str=""):
@@ -56,7 +65,14 @@ def OrderedDictReorder(ord_dict,index="key",rev=False):
     from collections import OrderedDict
     return OrderedDict(sorted(ord_dict.items(), key=lambda t:t[0] if index=="key" else t[1],reverse=rev))
 
- 
+def WriteNewDictDataToFile(ord_dict,txt_str=""):
+    from collections import OrderedDict
+    datafile = open(txt_str, "w")
+    for index in ord_dict:
+        datafile.write("%d\t%.4f\n" % (index, ord_dict[index]))
+    datafile.close()
+
+    
 if __name__ == "__main__":   
     raw_data = GetDataFromTxt("xxx.txt")
     print(raw_data)    
@@ -80,6 +96,11 @@ if __name__ == "__main__":
     print(key_ordered_data_l)   
     print(val_ordered_data_s)
     print(val_ordered_data_l)
+    WriteNewDictDataToFile(key_ordered_data_s,txt_str="key_ordered_data_s.txt")
+    WriteNewDictDataToFile(key_ordered_data_l,txt_str="key_ordered_data_l.txt")
+    WriteNewDictDataToFile(val_ordered_data_s,txt_str="val_ordered_data_s.txt")
+    WriteNewDictDataToFile(val_ordered_data_l,txt_str="val_ordered_data_l.txt")
+
 
 #order_data = OrderedDict()
 #order_data = OrderedDict(raw_data)
