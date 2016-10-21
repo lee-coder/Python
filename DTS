@@ -1,0 +1,147 @@
+#!/usr/bin/python
+# -*- coding: UTF-8 -*-
+#coding=utf-8
+#coding: utf-8
+
+import sys,os
+from datetime import datetime
+import urllib.parse,urllib.request,http.cookiejar
+from ntlm import HTTPNtlmAuthHandler
+from tkinter import *
+import tkinter.messagebox
+
+class MainWindow:
+          
+    def __init__(self):
+        self.frame = Tk()
+
+        self.label_id   = Label(self.frame,text = "USER     :",width=10)
+        self.label_pwd  = Label(self.frame,text = "PWD      :",width=10)
+        self.label_jira = Label(self.frame,text = "JIRA url :",width=10)
+        self.label_dts  = Label(self.frame,text = "DTS  url :",width=10)
+        
+        self.label_id.grid(row = 0,column = 0)
+        self.label_pwd.grid(row = 1,column = 0)
+        self.label_jira.grid(row = 2,column = 0)
+        self.label_dts.grid(row = 3,column = 0)
+        
+        self.text_id   = Entry(self.frame,width=40)
+        self.text_pwd  = Entry(self.frame,width=40)
+        self.text_jira = Entry(self.frame,width=40)
+        self.text_dts  = Entry(self.frame,width=40)
+
+        self.text_id.grid(row = 0,column = 1)
+        self.text_pwd.grid(row = 1,column = 1)
+        self.text_jira.grid(row = 2,column = 1)
+        self.text_dts.grid(row = 3,column = 1)
+ 
+        self.button_ok = Button(self.frame,text = "ok",width = 40) 
+        self.button_ok.grid(row = 4,column = 1)
+        self.button_ok.bind("<ButtonRelease-1>",self.ok)
+        
+        self.frame.title('JIRA DTS Handle')
+        self.frame.mainloop()        
+
+
+    def ok(self,event):
+        path_dir= os.getcwd()
+        i_id   = self.text_id.get() or ' null '
+        i_pwd  = self.text_pwd.get() or ' null '
+        i_jira = self.text_jira.get() or r'http://hisi-jira-pfm/sr/jira.issueviews:searchrequest-excel-current-fields/14302/SearchRequest-14302.xls?tempMax=10000&useColumns=true'
+        i_dts  = self.text_dts.get() or r'http://dts.huawei.com/net/dts/DTS/DTSAllList.aspx?CustomListId=20160202-1629-3470-9495-9697f8e993b3&&DTSBizList_AllExcelExport=1&DTSBizList_AllExportType=1&DTSBizList_AllExportField=0'
+        jira_file = r'D:\\jira.xls'
+        dts_file  = r'D:\\dts.xls'
+        cmd = "echo " + path_dir + "\JIRA_DTS_Handle.exe " + i_id + " " + i_pwd + r' "' + i_jira + r'" ' + r' "' + jira_file + r'" ' + r' "' + i_dts + r'" ' + r' "' + dts_file + r'" ' + " > run.bat"
+        print(cmd)
+        os.system(cmd)
+        cmd=r'schtasks /create /tn "My App" /tr D:\work_python\work\run.bat /sc daily /st 07:00:00 /ed 2100/12/31'
+        os.system(cmd)
+        #tkinter.messagebox.showinfo("messagebox","Hello, %s" % i_id)
+
+class JIRAParser:
+    """ This is a class to used to visit JIRA server and download the web data """   
+    user           = "" # your domian id
+    password       = "" # your domian password
+    jira_login_url = "http://hisi-jira-pfm/rest/gadget/1.0/login"  
+
+    def __init__(self,user,pwd,jira_dl_url,jira_dl_File):
+        """ initial, login """
+        self.user=user
+        self.password=pwd 
+        """ create HTTP password manager """ 
+        """ save cookie, for ready to visit other page after login """ 
+        cookie = http.cookiejar.CookieJar()
+        handeler  = urllib.request.HTTPCookieProcessor(cookie)
+        opener = urllib.request.build_opener(handeler)
+        opener.addheaders = [('User-agent', 'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.6) Gecko/20091201 Firefox/3.5.6')]
+        urllib.request.install_opener(opener)
+        postdata = urllib.parse.urlencode({'os_username':self.user, 'os_password':self.password, 'os_cookie':'true'})  
+        binary_data = postdata.encode('utf-8')  
+  
+        res = urllib.request.urlopen(self.jira_login_url,binary_data)  
+        #print(res.status, res.reason)  
+        if( res.status == '200' ):  
+            exit()  
+        print (datetime.now(), "Login Successfully!")
+        """ export JIRA issue to disk """
+        urllib.request.urlretrieve(jira_dl_url,jira_dl_File)
+        print (datetime.now(), "Download Finished!")
+
+class DTSParser:
+    """ This is a class to used to visit DTS server and download the web data """   
+    user           = "" # your domian id
+    password       = "" # your domian password
+    dts_login_url  = "http://dts.huawei.com"
+
+    def __init__(self,user,pwd,dts_dl_url,dts_dl_File):
+        """ login DTS.huawei.com with NTLM """
+        self.user=user
+        self.password=pwd     
+        """ create HTTP password manager """
+        passwdMgr =urllib.request.HTTPPasswordMgrWithDefaultRealm() 
+        passwdMgr.add_password(None, self.dts_login_url, self.user, self.password) 
+        # create the NTLM authentication handler 
+        NTLM_handeler = HTTPNtlmAuthHandler.HTTPNtlmAuthHandler(passwdMgr) 
+        # create and install the opener 
+        opener = urllib.request.build_opener(NTLM_handeler) 
+
+        urllib.request.install_opener(opener)
+        print (datetime.now(), "Login Successfully!")
+        """ export DTS issue to disk """
+        urllib.request.urlretrieve(dts_dl_url,dts_dl_File)
+        print (datetime.now(), "Download Finished!")
+
+def main(user,pwd,jira_dl_url,jira_dl_File,dts_dl_url,dts_dl_File):   
+    print (datetime.now(),"Main Begin")
+    d1=datetime.now()
+    
+    print ("Handle JIRA...")
+    parser = JIRAParser(user,pwd,jira_dl_url,jira_dl_File)
+    d2=datetime.now()
+    print ("JIRA Login and download cost:",d2-d1)
+
+    print ("Handle DTS...")
+    parser = DTSParser(user,pwd,dts_dl_url,dts_dl_File)
+    d3=datetime.now()
+    print("DTS Login and download cost:",d3-d2)
+
+    GreeneTransCmd_jira =r'"C:\Program Files (x86)\GreeneTransClient\GreeneTransClientTool.exe" -r ' + jira_dl_File
+    os.system(GreeneTransCmd_jira)
+    GreeneTransCmd_dts  =r'"C:\Program Files (x86)\GreeneTransClient\GreeneTransClientTool.exe" -r ' + dts_dl_File
+    os.system(GreeneTransCmd_dts)
+  
+if __name__ == '__main__':
+
+    #print(len(sys.argv))
+    argv_len = len(sys.argv)
+    
+    if (argv_len == 7):   
+        user         = sys.argv[1]
+        pwd          = sys.argv[2]
+        jira_dl_url  = sys.argv[3]
+        jira_dl_File = sys.argv[4]
+        dts_dl_url   = sys.argv[5]
+        dts_dl_File  = sys.argv[6]
+        main(user,pwd,jira_dl_url,jira_dl_File,dts_dl_url,dts_dl_File)
+    else :
+        frame = MainWindow()
