@@ -1,0 +1,47 @@
+import statistics
+import math
+import decimal
+from decimal import *
+getcontext().prec = 6
+
+def GetBasicStatVal(array):
+    if(len(array) == 0):
+        return ("Oops! There is no data pass into array, Hava A Check!")
+    mean = statistics.mean(array)
+    median = statistics.mean(array)               
+    try:
+        mode = statistics.mode(array)
+    except statistics.StatisticsError:
+        mode = None
+    stdev = statistics.stdev(array)
+    deviation = stdev/mean
+    return [mean,median,mode,stdev,deviation]
+
+def TransToNormalData(array, interval_num):
+    max_val = max(array)
+    min_val = min(array)
+    new_array = []
+    if(max_val == min_val):
+        return array
+    else:
+        interval_val = (max_val - min_val)/interval_num
+        plot_min_val = min_val - interval_val/2
+        print(interval_val)
+        print(plot_min_val)
+        for i in range(0,interval_num):
+            start_val.append(plot_min_val + i*interval_val)
+            print(start_val)
+        for data in array:
+            interval_index = math.floor((data - plot_min_val)/interval_val)
+            print(interval_index)
+            data_normal = plot_min_val + interval_index*interval_val + interval_val/2
+            new_array.append(data_normal)
+        return new_array
+
+if __name__ == "__main__":
+    test = [1,2,3,4,5,6,7,8,9,10]
+    test2 = [n*10 for n in test]
+    print(GetBasicStatVal(test))
+    print(GetBasicStatVal(test2))
+    #print([i/10 for i in range(1,101)])
+    print(TransToNormalData([i/10 for i in range(1,101)], 100))
